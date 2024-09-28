@@ -62,5 +62,5 @@ class ClickhouseClient:
     async def insert_result(self, ids1: list[str | UUID], ids2: list[str | UUID], ids3: list[str | UUID]):
         await self.client.insert(
             "table_results",
-            [[uid if isinstance(uid, UUID) else UUID(uid) for uid in ids_list] for ids_list in [ids1, ids2, ids3]],
+            [[[uid if isinstance(uid, UUID) else UUID(uid) for uid in ids_list] for ids_list in [ids1, ids2, ids3]]],
         )
