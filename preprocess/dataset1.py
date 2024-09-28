@@ -1,6 +1,8 @@
+from collections import namedtuple
+
 from .pipelines import addresses, birthdates, emails, names, phones, pipeline
 
-Dataset1Row = tuple[str, str, str, str, str, str, str]
+Dataset1Row = namedtuple('Dataset1Row', ['uid', 'name', 'email', 'address', 'sex', 'birthdate', 'phone'])
 
 name_pipeline = pipeline(
     names.remove_newlines,
@@ -24,7 +26,7 @@ phone_pipeline = pipeline(phones.parse_symbols, phones.remove_other_symbols)
 
 def parse_dataset1_row(row: Dataset1Row) -> Dataset1Row:
     uid, name, email, address, sex, birthdate, phone = row
-    return (
+    return Dataset1Row(
         uid,
         name_pipeline(name),
         email_pipeline(email),
