@@ -21,7 +21,7 @@ class ClickhouseClient:
 
     async def create_normalized_table(self):
         await self.client.command("""
-            create or replace table normalized
+            create table if not exists normalized
             (
                 uid UUID,
                 full_name String,
