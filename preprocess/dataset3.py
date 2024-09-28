@@ -2,18 +2,16 @@ from collections import namedtuple
 
 from standard import DatasetRow
 
-from .pipelines import addresses, birthdates, emails, names, phones, pipeline
+from .pipelines import birthdates, emails, names, pipeline
 
 Dataset1Row = namedtuple(
-    "Dataset1Row",
+    "Dataset3Row",
     [
         "uid",
-        "full_name",
+        "name",
         "email",
-        "address",
-        "sex",
         "birthdate",
-        "phone",
+        "sex",
     ],
 )
 
@@ -27,25 +25,22 @@ name_pipeline = pipeline(
 )
 
 email_pipeline = pipeline(emails.remove_other_symbols, emails.slice_by_digits)
-address_pipeline = pipeline(addresses.remove_new_lines, addresses.parse)
 birthdate_pipeline = pipeline(
     birthdates.split,
     birthdates.make_year_to_4_digits,
     birthdates.merge,
 )
 
-phone_pipeline = pipeline(phones.parse_symbols, phones.remove_other_symbols)
 
-
-def parse_dataset1_row(row: Dataset1Row) -> DatasetRow:
-    uid, name, email, address, sex, birthdate, phone = row
+def parse_dataset3_row(row: Dataset1Row) -> DatasetRow:
+    uid, name, email, birthdate, sex = row
     return DatasetRow(
         uid,
         name_pipeline(name),
         email_pipeline(email),
-        address_pipeline(address),
+        None,
         sex,
         birthdate_pipeline(birthdate),
-        phone_pipeline(phone),
-        1,
+        None,
+        3,
     )

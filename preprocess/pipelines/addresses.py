@@ -21,19 +21,20 @@ def parse(address: str) -> str:
         if " " in part:
             prefix, suffix = part.split(maxsplit=1)
             if (
-                "д." in prefix
-                and (suffix.count(" ") >= 2 or not addr.house)
-                and len([c for c in suffix if c.isdigit()]) > 0
+                "д." in prefix and (suffix.count(" ") >= 2 or not addr.house) and len([c for c in suffix if c.isdigit()]) > 0
             ) or "Дом" in prefix:
                 if suffix.count(" ") >= 2:
-                    house, flat_prefix, flat = suffix.split(maxsplit=2)
-                    addr.house = house
-                    if " " in flat:
-                        flat, index = flat.split(maxsplit=1)
-                        addr.flat = flat
-                        addr.index = index
-                    else:
-                        addr.flat = flat
+                    try:
+                        house, flat_prefix, flat = suffix.split(maxsplit=2)
+                        addr.house = house
+                        if " " in flat:
+                            flat, index = flat.split(maxsplit=1)
+                            addr.flat = flat
+                            addr.index = index
+                        else:
+                            addr.flat = flat
+                    except ValueError:
+                        addr.house = suffix
                 else:
                     addr.house = suffix
             elif prefix.strip() in [
