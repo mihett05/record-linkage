@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import clickhouse_connect
 import clickhouse_connect.driver
 import clickhouse_connect.driver.asyncclient
@@ -21,7 +23,7 @@ class ClickhouseClient:
 
     async def create_normalized_table(self):
         await self.client.command("""
-            create or replace table normalized
+            create table if not exists normalized
             (
                 uid UUID,
                 full_name String,
@@ -37,6 +39,16 @@ class ClickhouseClient:
             order by uid;
         """)
 
+    async def create_results_table(self):
+        await self.client.command("""
+        CREATE TABLE IF NOT EXISTS table_results (
+            id_is1 Array(UUID),
+            id_is2 Array(UUID),
+            id_is3 Array(UUID)
+        ) ENGINE = MergeTree()
+        ORDER BY id_is1
+        """)
+
     async def count(self, table_name: str) -> int:
         return (await self.query(f"select count(*) from {table_name}"))[0][0]
 
@@ -46,3 +58,9 @@ class ClickhouseClient:
 
     async def insert_normalized(self, row: list[DatasetRow]):
         await self.client.insert("normalized", row)
+
+    async def insert_result(self, ids1: list[str | UUID], ids2: list[str | UUID], ids3: list[str | UUID]):
+        await self.client.insert(
+            "table_results",
+            [[uid if isinstance(uid, UUID) else UUID(uid) for uid in ids_list] for ids_list in [ids1, ids2, ids3]],
+        )

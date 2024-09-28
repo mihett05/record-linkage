@@ -9,6 +9,8 @@ from clustering import IncrementalStringRecordLinkage
 from datasource import ClickhouseClient
 from preprocess import preprocess_table
 from preprocess.dataset1 import Dataset1Row, parse_dataset1_row
+from preprocess.dataset2 import parse_dataset2_row
+from preprocess.dataset3 import parse_dataset3_row
 
 fake_data = [
     Dataset1Row(
@@ -70,22 +72,33 @@ fake_data = [
 
 async def main():
     client = await ClickhouseClient.create()
-    rows = await client.query("select * from table_dataset1 LIMIT 100000")
-    parsed_rows = list(map(parse_dataset1_row, rows))
+    await client.create_normalized_table()
+    await client.create_results_table()
+    print("Starting preprocessing")
+    await preprocess_table(client, "table_dataset1", parse_dataset1_row)
+    await preprocess_table(client, "table_dataset2", parse_dataset2_row)
+    await preprocess_table(client, "table_dataset2", parse_dataset3_row)
+    print("Finished processing")
+    # groups = await get_list_of_groups_by_columns(client)
+    # for column in groups:
+    #     print(column)
+    # TODO: поиск по нормализованной таблице
+    # rows = await client.query("select * from table_dataset1 LIMIT 100000")
+    # parsed_rows = list(map(parse_dataset1_row, rows))
 
-    dataframe = pd.DataFrame(parsed_rows)
+    # dataframe = pd.DataFrame(parsed_rows)
     
-    features = compare_rows(dataframe)
+    # features = compare_rows(dataframe)
 
-    matches = classify(features)
+    # matches = classify(features)
 
-    incremental_cluster = IncrementalStringRecordLinkage()
+    # incremental_cluster = IncrementalStringRecordLinkage()
 
-    for match in matches:
-        incremental_cluster.add_record((dataframe.iloc[match[0]], dataframe.iloc[match[1]]))
+    # for match in matches:
+    #     incremental_cluster.add_record((dataframe.iloc[match[0]], dataframe.iloc[match[1]]))
     
-    for cluster_uids, cluster_items in incremental_cluster.clusters:
-        print(cluster_items, end='\n\n')
+    # for cluster_uids, cluster_items in incremental_cluster.clusters:
+    #     print(cluster_items, end='\n\n')
     # print("Starting preprocessing")
     # await preprocess_table(client, "table_dataset1", parse_dataset1_row)
     # print("Finished")
