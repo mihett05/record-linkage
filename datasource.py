@@ -17,7 +17,7 @@ class ClickhouseClient:
 
     @staticmethod
     async def get_client() -> clickhouse_connect.driver.asyncclient.AsyncClient:
-        return await clickhouse_connect.create_async_client(host="localhost", port=8123)
+        return await clickhouse_connect.create_async_client(host="94.50.162.171", port=8123)
 
     async def create_normalized_table(self):
         await self.client.command("""
