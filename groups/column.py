@@ -1,5 +1,3 @@
-import json
-
 from datasource import ClickhouseClient
 
 columns = [
@@ -24,18 +22,18 @@ columns_for_group = [
 
 async def group_query(client: ClickhouseClient, column: str):
     query_columns = [col for col in columns if col != column]
-    aggregated = ", ".join([f"arrayCompact(groupArray({col})) {col}" for col in query_columns])
+    aggregated = ", ".join([f"groupArray({col}) {col}" for col in query_columns])
     query = f"""
     select * from (
         select {column}, {aggregated}, count(*) as c
         from normalized group by {column}
     ) where c > 2
     """
-    groups = await client.query(query)
+    groups = [list(group[:-1]) for group in await client.query(query)]
     entity_groups = []
     for group in groups:
         target_column = group[0]
-        group[1:-1] = [json.loads(column) for column in group[1:-1]]
+        group[1:] = [column for column in group[1:]]
         aggregated_rows = list(zip(*group[1:]))
         entities = []
         for row in aggregated_rows:

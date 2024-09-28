@@ -7,8 +7,10 @@ import pandas as pd
 from nltk.metrics import distance
 
 from datasource import ClickhouseClient
-from groups import get_list_of_groups_by_columns
-from preprocess.dataset1 import Dataset1Row
+from preprocess import preprocess_table
+from preprocess.dataset1 import Dataset1Row, parse_dataset1_row
+from preprocess.dataset2 import parse_dataset2_row
+from preprocess.dataset3 import parse_dataset3_row
 
 fake_data = [
     Dataset1Row(
@@ -70,16 +72,17 @@ fake_data = [
 
 async def main():
     client = await ClickhouseClient.create()
-    # rows = await client.query("select * from table_dataset1 LIMIT 1000")
-    # parsed_rows = list(map(parse_dataset1_row, rows))
-    # print(*parsed_rows, sep='\n')
     await client.create_normalized_table()
-    # await preprocess_table(client, "table_dataset1", parse_dataset1_row)
-    groups = await get_list_of_groups_by_columns(client)
-    for column in groups:
-        print(column, groups[column])
+    await client.create_results_table()
     print("Starting preprocessing")
-    # print("Finished")
+    await preprocess_table(client, "table_dataset1", parse_dataset1_row)
+    await preprocess_table(client, "table_dataset2", parse_dataset2_row)
+    await preprocess_table(client, "table_dataset2", parse_dataset3_row)
+    print("Finished processing")
+    # groups = await get_list_of_groups_by_columns(client)
+    # for column in groups:
+    #     print(column)
+    # TODO: поиск по нормализованной таблице
 
 
 def test_comparasion():
