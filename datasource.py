@@ -1,3 +1,4 @@
+import time
 from uuid import UUID
 
 import clickhouse_connect
@@ -5,6 +6,7 @@ import clickhouse_connect.driver
 import clickhouse_connect.driver.asyncclient
 import clickhouse_connect.driver.binding
 import clickhouse_connect.driver.query
+import pandas as pd
 
 from standard import DatasetRow
 
@@ -52,9 +54,15 @@ class ClickhouseClient:
     async def count(self, table_name: str) -> int:
         return (await self.query(f"select count(*) from {table_name}"))[0][0]
 
+    async def query_df(self, query: str) -> pd.DataFrame:
+        return await self.client.query_df(query)
+
     async def query(self, query: str, parameters: dict | None = None) -> list:
+        t = time.time()
         result = await self.client.query(query, parameters)
-        return result.result_rows
+        r = result.result_rows
+        print("query", time.time() - t)
+        return r
 
     async def insert_normalized(self, row: list[DatasetRow]):
         await self.client.insert("normalized", row)
@@ -63,4 +71,11 @@ class ClickhouseClient:
         await self.client.insert(
             "table_results",
             [[[uid if isinstance(uid, UUID) else UUID(uid) for uid in ids_list] for ids_list in [ids1, ids2, ids3]]],
+        )
+
+    async def insert_result_rows(self, rows: list[tuple[list[str | UUID], list[str | UUID], list[str | UUID]]]):
+        # [[[uid if isinstance(uid, UUID) else UUID(uid) for uid in ids_list] for ids_list in [ids1, ids2, ids3]]]
+        await self.client.insert(
+            "table_results",
+            rows,
         )

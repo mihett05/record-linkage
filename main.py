@@ -1,34 +1,24 @@
 import asyncio
 import sys
+from math import ceil
 
 from clustering import IncrementalStringRecordLinkage
 from comparison import classify, compare_rows
 from datasource import ClickhouseClient
-from preprocess import preprocess_table
-from preprocess.dataset1 import parse_dataset1_row
-from preprocess.dataset2 import parse_dataset2_row
-from preprocess.dataset3 import parse_dataset3_row
+
+PAGE_SIZE = 100000
 
 
-async def main():
-    client = await ClickhouseClient.create()
-    await client.create_normalized_table()
-    await client.create_results_table()
-    print("Starting preprocessing")
-    await preprocess_table(client, "table_dataset1", parse_dataset1_row)
-    await preprocess_table(client, "table_dataset2", parse_dataset2_row)
-    await preprocess_table(client, "table_dataset2", parse_dataset3_row)
-    print("Finished processing")
-
-    dataframe = await client.query_df("select * from normalized where source = 1 limit 1000000")
-    print("rows obtained")
-    print(dataframe)
+async def run_deduplicating(client: ClickhouseClient, page: int, table: str):
+    t = time()
+    dataframe = await client.query_df(f"select * from {table} order by full_name limit {PAGE_SIZE} offset {page * PAGE_SIZE}")
+    print(f"rows obtained {page}")
 
     features = compare_rows(dataframe)
-    print("features obtained")
+    print(f"features obtained {page}")
 
     matches = classify(features)
-    print("matches obtained")
+    print(f"matches obtained {page}")
 
     incremental_cluster = IncrementalStringRecordLinkage()
 
@@ -40,18 +30,38 @@ async def main():
             extra_indices.remove(match[0])
         if match[1] in extra_indices:
             extra_indices.remove(match[1])
-    print("added pairs to clusters")
+    print(f"added pairs to clusters {page}")
 
-    for index in extra_indices:
-        incremental_cluster.add_record((dataframe.iloc[index]))
-    print("added extra indices to clusters")
+    print(f"Inserting {page}")
+    results = []
+    if table.startswith("normalized"):
+        for cluser_uids, cluster_items in incremental_cluster.clusters:
+            uids_and_source = [(item[0], item[-1]) for item in cluster_items]
+            uids = {1: [], 2: [], 3: []}
+            for uid, source in uids_and_source:
+                uids[source].append(uid)
+            results.append(list(uids.values()))
+    else:
+        for cluser_uids, cluster_items in incremental_cluster.clusters:
+            results.append([cluser_uids, [], []])
+    asyncio.create_task(client.insert_result_rows(results))
+    print(f"Page [{page}] for {time() - t}s")
 
-    # total_length = 0
-    # for cluster_uids, cluster_items in incremental_cluster.clusters:
-    #     # print(cluster_items, end='\n\n')
-    #     total_length += len(cluster_uids)
 
-    # print(f'Total length: {total_length}')
+async def main():
+    client = await ClickhouseClient.create()
+    await client.create_normalized_table()
+    await client.create_results_table()
+    print("Starting preprocessing")
+    # await preprocess_table(client, "table_dataset1", parse_dataset1_row)
+    # await preprocess_table(client, "table_dataset2", parse_dataset2_row)
+    # await preprocess_table(client, "table_dataset2", parse_dataset3_row)
+    print("Finished processing")
+
+    for table in ["table_dataset1", "table_dataset2", "table_dataset3"]:
+        count = await client.count(table)  # normalized
+        for page in range(ceil(count / PAGE_SIZE)):
+            await run_deduplicating(client, page, table)  # normalized
 
 
 if __name__ == "__main__":
