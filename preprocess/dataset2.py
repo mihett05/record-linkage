@@ -1,7 +1,8 @@
 from collections import namedtuple
 
+from standard import DatasetRow
+
 from .pipelines import addresses, birthdates, names, phones, pipeline
-from ..standard import DatasetRow
 
 Dataset2Row = namedtuple(
     "Dataset2Row",
