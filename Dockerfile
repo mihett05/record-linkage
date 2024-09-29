@@ -7,6 +7,4 @@ RUN pip3 install -r ./requirements.txt
 
 COPY . /app
 
-RUN chmod +x ./entrypoint.sh
-
 CMD ["python3", "main.py"]
